@@ -1,0 +1,29 @@
+#spread .tick{
+  stroke: rgb(32, 32, 82);
+}
+
+h1{
+  letter-spacing: 1.5px;
+  font-size: 50px;
+  color: rgb(32, 32, 82);
+}
+body{
+  background-color: lightblue;
+  font-family: Trebuchet MS;
+}
+#toolTip{
+  position: absolute;
+  background-color: rgb(230,230,230);
+  border-radius: 5px;
+  visibility: hidden;
+  padding: 5px;
+  text-align: center;
+}
+#main{
+  width: 100%;
+  text-align: center;
+}
+
+#spread{
+  margin-top: 30px;
+}
