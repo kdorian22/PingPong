@@ -99,16 +99,29 @@
 
         meanSpread = d3.mean(data.map(function(d){ return d.spread}))
         xScale_SP = d3.scaleLinear().domain([0, data.length]).range([0, width])
-        yScale_SP = d3.scaleLinear().domain([-1*(data.length*meanSpread)-10, (data.length*meanSpread)+10]).range([height, 0])
+        yScale_SP = d3.scaleLinear().domain([-1*(data.length*meanSpread)-100, (data.length*meanSpread)+100]).range([height, 0])
 
         plot = spread.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
         rollSpread = []
         totSpread = 0
+        streak = 0
+        prevWinner = data[0].winner
         for([i, game] of data.entries()){
          // mult = game.winner == 'Dad' ? -1 : 1
          totSpread = totSpread + parseInt(game.spread)
-         rollSpread.push({game: i, tot: totSpread, data: game})
+         winner = game.winner
+         if(winner == prevWinner){
+           streak = streak + 1
+           rollSpread.push({game: i, tot: totSpread, streak: 0, data: game})
+         }else{
+           if(streak >= 8){
+             rollSpread.push({game: i, tot: totSpread, streak: streak, data: game})
+           }else{
+             rollSpread.push({game: i, tot: totSpread, streak: 0, data: game})
+           }
+           streak = 0
+         }
         }
 
 
@@ -148,6 +161,20 @@
             .x(function(d) { return xScale_SP(d.game) })
             .y(function(d) { return yScale_SP(d.tot) })
             )
+
+      streaks = rollSpread.filter(function(d){ return d.streak > 0})
+
+      for(streak of streaks){
+        console.log(streak)
+        plot.append("line")
+        .attr("x1", function(d){return xScale_SP(streak.game)})
+        .attr("y1", function(d){return yScale_SP(streak.tot-80)})
+        .attr("x2", function(d){return xScale_SP(streak.game)})
+        .attr("y2", function(d){return yScale_SP(streak.tot+80)})
+        .style("stroke-width", 2)
+        .style("stroke", "rgb(32, 32, 82)")
+        .attr("stroke-dasharray", "5")
+      }
 
 
 
@@ -215,6 +242,10 @@
               d3.select(this).text('Show Points')
             }
           })
+
+          d3.select('#shut').text('Shutouts: ' + String(data.filter(function(d){ return d.score_ben == 0 || d.score_dad == 0}).length))
+          d3.select('#ot').text('Overtime Games: ' + String(data.filter(function(d){ return d.score_ben > 21 || d.score_dad > 21}).length))
+          d3.select('#cur').text('Current Champ: ' + String(data[data.length-1].winner))
 
 
 
