@@ -5,9 +5,6 @@
         return row
       }).then(function(data){
 
-        function format(num){
-          return Math.abs(num)
-        }
 
         table = d3.select('#bee').style('background-color', 'rgb(32 32 82)').style('border', '3px solid white')
         width = table.attr('width')
@@ -102,7 +99,7 @@
 
         meanSpread = d3.mean(data.map(function(d){ return d.spread}))
         xScale_SP = d3.scaleLinear().domain([0, data.length]).range([0, width])
-        yScale_SP = d3.scaleLinear().domain([-1*(data.length*meanSpread), (data.length*meanSpread)]).range([height, 0])
+        yScale_SP = d3.scaleLinear().domain([-1*(data.length*meanSpread)-10, (data.length*meanSpread)+10]).range([height, 0])
 
         plot = spread.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
@@ -114,12 +111,13 @@
          rollSpread.push({game: i, tot: totSpread, data: game})
         }
 
+
         plot.append("g")
         .attr("transform", "translate(0," + height/2 + ")")
         .call(d3.axisBottom(xScale_SP))
 
         plot.append("g")
-        .call(d3.axisLeft(yScale_SP))
+        .call(d3.axisLeft(yScale_SP).tickFormat(function(n){return Math.abs(n)}))
 
         spread.selectAll('.domain').attr('stroke', 'rgb(32, 32, 82)')
 
