@@ -70,7 +70,7 @@
         table.selectAll('.game')
         .data(swarm, function(d, i){ return i})
         .enter().append('circle')
-        .attr('class', 'game')
+        .attr('class', function(d){ return d.datum.score_ben > 21 | d.datum.score_dad > 21 ? 'otB' : d.datum.score_ben == 0 ? 'dadShutB' : d.datum.score_dad == 0 ? 'benShutB' : 'game' })
         .attr('cx', function(d){ return d.x})
         .attr('cy', function(d){ return height/2-d.y})
         .attr('id', function(d, i){return `game${i}`})
@@ -83,12 +83,12 @@
           d3.select('#toolTip').html(`Game ${i+1}  <br> ${d3.max([parseInt(d.datum.score_ben), parseInt(d.datum.score_dad)])} - ${d3.min([parseInt(d.datum.score_ben), parseInt(d.datum.score_dad)])}  ${d.datum.winner}`)
           d3.select('#toolTip').style('visibility','visible')
 
-          d3.select(`#spread${i}`).attr('r', 5)
+          d3.select(`#spread${i+1}`).attr('r', 5)
         })
         .on('mouseout', function(d, i){
           d3.select('#toolTip').style('visibility','hidden')
 
-          d3.select(`#spread${i}`).attr('r', 3)
+          d3.select(`#spread${i+1}`).attr('r', 3)
 
         })
 
@@ -103,7 +103,7 @@
 
         plot = spread.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
-        rollSpread = []
+        rollSpread = [{game: 0, tot: 0, streak: 0, streaker: '', data: {}}]
         totSpread = 0
         streak = 0
         prevWinner = data[0].winner
@@ -113,15 +113,16 @@
          winner = game.winner
          if(winner == prevWinner){
            streak = streak + 1
-           rollSpread.push({game: i, tot: totSpread, streak: 0, data: game})
+           rollSpread.push({game: i+1, tot: totSpread, streak: 0, streaker: '', data: game})
          }else{
-           if(streak >= 8){
-             rollSpread.push({game: i, tot: totSpread, streak: streak, data: game})
+           if(streak >= 5){
+             rollSpread.push({game: i+1, tot: totSpread, streak: streak, streaker: prevWinner, data: game})
            }else{
-             rollSpread.push({game: i, tot: totSpread, streak: 0, data: game})
+             rollSpread.push({game: i+1, tot: totSpread, streak: 0, streaker: '', data: game})
            }
            streak = 0
          }
+         prevWinner = winner
         }
 
 
@@ -164,24 +165,36 @@
 
       streaks = rollSpread.filter(function(d){ return d.streak > 0})
 
-      for(streak of streaks){
-        console.log(streak)
-        plot.append("line")
-        .attr("x1", function(d){return xScale_SP(streak.game)})
-        .attr("y1", function(d){return yScale_SP(streak.tot-80)})
-        .attr("x2", function(d){return xScale_SP(streak.game)})
-        .attr("y2", function(d){return yScale_SP(streak.tot+80)})
+      console.log(rollSpread)
+        plot.selectAll('.streaks')
+        .data(streaks)
+        .enter()
+        .append("line")
+        .attr('class', 'streaks')
+        .attr("x1",  function(streak){return xScale_SP(streak.game)})
+        .attr("y1", function(streak){return yScale_SP(streak.tot-80)})
+        .attr("x2", function(streak){return xScale_SP(streak.game)})
+        .attr("y2", function(streak){return  yScale_SP(streak.tot+80)})
         .style("stroke-width", 2)
         .style("stroke", "rgb(32, 32, 82)")
-        .attr("stroke-dasharray", "5")
-      }
+        // .attr("stroke-dasharray", "5")
+        .on('mouseenter', function(streak, i){
+          d3.select(this).style('stroke-width', '3')
+          $('#toolTip').css('left', d3.event.pageX-60).css('top', d3.event.pageY-50).css('border',  `1px solid ${streak.streaker == 'Dad' ? 'red' : 'blue'}`)
+          d3.select('#toolTip').html(`${streak.streaker}: ${streak.streak} game streak`)
+          d3.select('#toolTip').style('visibility','visible')
+        })
+        .on('mouseout', function(d, i){
+          d3.select('#toolTip').style('visibility','hidden')
+          d3.select(this).style('stroke-width', '2')
+        })
 
 
 
 
         plot.selectAll('.gamePts').data(rollSpread)
         .enter().append('circle')
-          .attr('class', 'gamePts')
+          .attr('class', function(d){ return d.data.score_ben > 21 | d.data.score_dad > 21 ? 'ot' : d.data.score_ben == 0 ? 'dadShut' : d.data.score_dad == 0 ? 'benShut' : 'gamePts' })
           .attr("fill", function(d){ return d.data.winner == 'Dad' ? 'red': 'blue'})
           .attr("stroke", "black")
           .attr('id', function(d){return `spread${d.game}`})
@@ -190,20 +203,21 @@
           .attr('cx', function(d){return xScale_SP(d.game)})
           .attr('cy', function(d){return yScale_SP(d.tot)})
           .on('mouseenter', function(d, i){
-            d3.select(this).attr('r', '5')
-            $('#toolTip').css('left', d3.event.pageX-40).css('top', d3.event.pageY-80).css('border',  `1px solid ${d.data.winner == 'Dad' ? 'red' : 'blue'}`)
-            d3.select('#toolTip').html(`Game ${i+1}  <br> ${d3.max([parseInt(d.data.score_ben), parseInt(d.data.score_dad)])} - ${d3.min([parseInt(d.data.score_ben), parseInt(d.data.score_dad)])}  ${d.data.winner}
-            <br> Spread: ${d.tot}`)
-            d3.select('#toolTip').style('visibility','visible')
+            if(i != 0){
+              d3.select(this).attr('r', '5')
+              $('#toolTip').css('left', d3.event.pageX-40).css('top', d3.event.pageY-80).css('border',  `1px solid ${d.data.winner == 'Dad' ? 'red' : 'blue'}`)
+              d3.select('#toolTip').html(`Game ${i}  <br> ${d3.max([parseInt(d.data.score_ben), parseInt(d.data.score_dad)])} - ${d3.min([parseInt(d.data.score_ben), parseInt(d.data.score_dad)])}  ${d.data.winner}
+              <br> Spread: ${d.tot}`)
+              d3.select('#toolTip').style('visibility','visible')
 
-            d3.select(`#game${i}`).attr('fill', 'yellow')
-
+              d3.select(`#game${i-1}`).attr('fill', 'yellow')
+            }
           })
           .on('mouseout', function(d, i){
             d3.select('#toolTip').style('visibility','hidden')
             d3.select(this).attr('r', '3')
 
-            d3.select(`#game${i}`).attr('fill', 'rgb(230, 230, 230)')
+            d3.select(`#game${i-1}`).attr('fill', 'rgb(230, 230, 230)')
 
           })
 
@@ -235,7 +249,7 @@
           }).on('mouseout', function(d){
             d3.select(this).style('text-decoration', 'none')
           }).on('click', function(d){
-            $('.gamePts').toggle('fast')
+            $('.gamePts, .ot, .dadShut, .benShut').toggle('fast')
             if(d3.select(this).text() == 'Show Points'){
               d3.select(this).text('Hide Points')
             }else{
@@ -243,10 +257,38 @@
             }
           })
 
-          d3.select('#shut').text('Shutouts: ' + String(data.filter(function(d){ return d.score_ben == 0 || d.score_dad == 0}).length))
-          d3.select('#ot').text('Overtime Games: ' + String(data.filter(function(d){ return d.score_ben > 21 || d.score_dad > 21}).length))
-          d3.select('#cur').text('Current Champ: ' + String(data[data.length-1].winner))
+          d3.select('#shutBen').text(String(data.filter(function(d){ return d.score_dad == 0}).length))
+          d3.select('#shutDad').text(String(data.filter(function(d){ return d.score_ben == 0 }).length))
+          d3.select('#ot').text(String(data.filter(function(d){ return d.score_ben > 21 || d.score_dad > 21}).length))
+          d3.select('#cur').text(String(data[data.length-1].winner)).style('color', String(data[data.length-1].winner) == 'Dad' ? 'red' : 'blue')
 
+          $('#otP, #dsP, #bsP').css('cursor', 'pointer')
+          $('#otP').hover(function(){
+            d3.selectAll('.ot').attr('r', 5)
+            d3.selectAll('.otB').attr('fill', 'yellow')
+          }, function(){
+            d3.selectAll('.ot').attr('r', 3)
+            d3.selectAll('.otB').attr('fill', 'rgb(230, 230, 230)')
+          })
+
+          $('#dsP').hover(function(){
+            d3.selectAll('.dadShut').attr('r', 5)
+            d3.selectAll('.dadShutB').attr('fill', 'yellow')
+          }, function(){
+            d3.selectAll('.dadShut').attr('r', 3)
+            d3.selectAll('.dadShutB').attr('fill', 'rgb(230, 230, 230)')
+
+          })
+
+          $('#bsP').hover(function(){
+            d3.selectAll('.benShut').attr('r', 5)
+            d3.selectAll('.benShutB').attr('fill', 'yellow')
+
+          }, function(){
+            d3.selectAll('.benShut').attr('r', 3)
+            d3.selectAll('.benShutB').attr('fill', 'rgb(230, 230, 230)')
+
+          })
 
 
 
